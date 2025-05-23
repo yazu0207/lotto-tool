@@ -97,14 +97,15 @@
 
 <div class="step-section button-group">
   <button onclick="step1And2()">① 35個ユニーク数字生成 & チェス盤分類</button>
-  <button onclick="resetStorage()">🔄 リセット</button>
-  <button onclick="downloadInitialCSV()">②結果をCSV保存</button>
+  <button onclick="resetStorage()">🔄 全体リセット</button>
+  <button onclick="downloadInitialCSV()">②初期結果をCSV保存</button>
   <div id="step2Container"></div>
   <div id="excludedNumbers"></div>
 </div>
 
 <div class="step-section button-group">
   <button onclick="step3()">③ 並び替え（白→1-2行目、黒→3-4行目、残り→5行目）</button>
+  <button onclick="resetStep3()">🔄 部分リセット</button>
   <div id="step3Container"></div>
 </div>
 
@@ -127,11 +128,13 @@
 </div>
 
 <script>
-  let grid = [];
-  let chessColors = [];
-  let initialGrid = [];
-  let finalGrid = [];
-  let excludedNumbers = [];
+  let initialGrid = []; // ステップ1/2のグリッドデータ
+  let initialChessColors = []; // ステップ1/2のチェス盤色データ
+  let currentGrid = []; // ステップ3以降で操作されるグリッドデータ
+  let currentChessColors = []; // ステップ3以降で操作されるチェス盤色データ
+  let finalGrid = []; // ステップ5の最終結果
+  let excludedNumbers = []; // 選ばれなかった数字
+
   const rows = 5;
   const cols = 7;
 
@@ -150,37 +153,51 @@
 
   function processStep1() {
     const numbers = generateUniqueNumbers();
-    grid = [];
+    initialGrid = [];
     for (let i = 0; i < rows; i++) {
       const row = numbers.slice(i * cols, (i + 1) * cols);
-      grid.push(row);
+      initialGrid.push(row);
     }
-    initialGrid = JSON.parse(JSON.stringify(grid));
+    // currentGrid は initialGrid のコピーから開始
+    currentGrid = JSON.parse(JSON.stringify(initialGrid)); 
     document.getElementById('excludedNumbers').innerHTML = '選ばれなかった数字: ' + excludedNumbers.join(', ');
   }
 
   function processStep2() {
-    chessColors = [];
+    initialChessColors = [];
     for (let r = 0; r < rows; r++) {
       let row = [];
       for (let c = 0; c < cols; c++) {
         row.push((r + c) % 2 === 0 ? 'white' : 'black');
       }
-      chessColors.push(row);
+      initialChessColors.push(row);
     }
-    document.getElementById('step2Container').innerHTML = '';
-    renderGrid(grid, chessColors, 'step2Container');
+    // currentChessColors も initialChessColors のコピーから開始
+    currentChessColors = JSON.parse(JSON.stringify(initialChessColors));
+    document.getElementById('step2Container').innerHTML = ''; // クリアしてから表示
+    renderGrid(initialGrid, initialChessColors, 'step2Container');
   }
 
   function step1And2() {
-    processStep1();
-    processStep2();
-    saveToLocalStorage('step2');
+    processStep1(); // ユニーク数字生成
+    processStep2(); // チェス盤分類表示
+    saveToLocalStorage('step2'); // ステップ2として保存
   }
 
   function step3() {
-    localStorage.setItem('lotto_step3_grid_pre', JSON.stringify(grid));
-    localStorage.setItem('lotto_step3_colors_pre', JSON.stringify(chessColors));
+    // step3実行前には必ずstep2のデータが存在することを確認
+    if (initialGrid.length === 0 || initialChessColors.length === 0) {
+        alert("先に「① 35個ユニーク数字生成 & チェス盤分類」を実行してください。");
+        return;
+    }
+    
+    // 現在のcurrentGridとcurrentChessColorsをlotto_step3_grid_preとして保存（リセット用）
+    localStorage.setItem('lotto_step3_grid_pre', JSON.stringify(currentGrid));
+    localStorage.setItem('lotto_step3_colors_pre', JSON.stringify(currentChessColors));
+
+    // step3の処理は initialGrid と initialChessColors をベースに行う
+    const tempGrid = JSON.parse(JSON.stringify(initialGrid));
+    const tempChessColors = JSON.parse(JSON.stringify(initialChessColors));
 
     const whiteOrder = [
       [0, 0], [0, 2], [1, 1], [2, 0], [3, 1], [2, 2], [1, 3],
@@ -203,8 +220,8 @@
     for (let i = 0; i < whiteOrder.length; i++) {
         const r = whiteOrder[i][0];
         const c = whiteOrder[i][1];
-        if (chessColors[r][c] === 'white') {
-            newWhiteValues.push(grid[r][c]);
+        if (tempChessColors[r][c] === 'white') {
+            newWhiteValues.push(tempGrid[r][c]);
             orderedPositions.add(r + ',' + c);
         }
     }
@@ -212,8 +229,8 @@
     for (let i = 0; i < blackOrder.length; i++) {
         const r = blackOrder[i][0];
         const c = blackOrder[i][1];
-        if (chessColors[r][c] === 'black') {
-            newBlackValues.push(grid[r][c]);
+        if (tempChessColors[r][c] === 'black') {
+            newBlackValues.push(tempGrid[r][c]);
             orderedPositions.add(r + ',' + c);
         }
     }
@@ -221,7 +238,7 @@
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         if (!orderedPositions.has(r + ',' + c)) {
-          newRemainderValues.push(grid[r][c]);
+          newRemainderValues.push(tempGrid[r][c]);
         }
       }
     }
@@ -235,6 +252,7 @@
       newBlackValues.slice(7, 14)
     ];
     const remainderGroup = [].concat(newWhiteValues.slice(14), newBlackValues.slice(14), newRemainderValues).slice(0, 7);
+
 
     const newGrid = [
       whiteGroups[0],
@@ -259,22 +277,44 @@
         newColors.push(rowColors);
     }
 
-    grid = newGrid;
-    chessColors = newColors;
+    currentGrid = newGrid;
+    currentChessColors = newColors;
     document.getElementById('step3Container').innerHTML = '';
-    renderGrid(grid, newColors, 'step3Container');
-    saveToLocalStorage('step3');
-    localStorage.setItem('lotto_step3_grid', JSON.stringify(grid));
-    localStorage.setItem('lotto_step3_colors', JSON.stringify(chessColors));
+    renderGrid(currentGrid, currentChessColors, 'step3Container');
+    saveToLocalStorage('step3'); // step3として保存
+    localStorage.setItem('lotto_step3_grid', JSON.stringify(currentGrid)); // 並び替え後の状態を別途保存
+    localStorage.setItem('lotto_step3_colors', JSON.stringify(currentChessColors)); // 並び替え後の色を別途保存
   }
 
-  function step4() {
-    const savedStep3Grid = JSON.parse(localStorage.getItem('lotto_step3_grid_pre'));
-    const savedStep3Colors = JSON.parse(localStorage.getItem('lotto_step3_colors_pre'));
+  // ステップ3をリセットする新しい関数
+  function resetStep3() {
+    // step3Container の表示をクリアするだけ
+    document.getElementById('step3Container').innerHTML = '';
+    
+    // step3実行後の状態を保存したlocalStorageをクリア
+    localStorage.removeItem('lotto_step3_grid');
+    localStorage.removeItem('lotto_step3_colors');
+    
+    // `currentGrid` と `currentChessColors` は `initialGrid` と `initialChessColors` の状態に戻る
+    // （ここでは直接変更せず、次回のstep3()実行で再計算されるか、loadFromLocalStorageで復元される）
+    currentGrid = JSON.parse(JSON.stringify(initialGrid));
+    currentChessColors = JSON.parse(JSON.stringify(initialChessColors));
 
-    if (savedStep3Grid && savedStep3Colors) {
-      grid = JSON.parse(JSON.stringify(savedStep3Grid));
-      chessColors = JSON.parse(JSON.stringify(savedStep3Colors));
+    // 保存状態をステップ2に戻す
+    saveToLocalStorage('step2'); 
+    // ロードし直して、正しい状態をUIに反映
+    loadFromLocalStorage();
+  }
+
+
+  function step4() {
+    // step4はstep3の並び替え後のデータを利用するので、lotto_step3_grid を参照するように変更
+    const loadedStep3Grid = JSON.parse(localStorage.getItem('lotto_step3_grid'));
+    const loadedStep3Colors = JSON.parse(localStorage.getItem('lotto_step3_colors'));
+
+    if (loadedStep3Grid && loadedStep3Colors) {
+      currentGrid = JSON.parse(JSON.stringify(loadedStep3Grid));
+      currentChessColors = JSON.parse(JSON.stringify(loadedStep3Colors));
     } else {
         alert("「③ 並び替え」ステップを先に実行してください。");
         return;
@@ -291,13 +331,13 @@
         }
       for (let i = 0; i < count; i++) {
         const idx = indices[i];
-        var tempGrid = grid[r1][idx];
-        grid[r1][idx] = grid[r2][idx];
-        grid[r2][idx] = tempGrid;
+        var tempGrid = currentGrid[r1][idx];
+        currentGrid[r1][idx] = currentGrid[r2][idx];
+        currentGrid[r2][idx] = tempGrid;
 
-        var tempColors = chessColors[r1][idx];
-        chessColors[r1][idx] = chessColors[r2][idx];
-        chessColors[r2][idx] = tempColors;
+        var tempColors = currentChessColors[r1][idx];
+        currentChessColors[r1][idx] = currentChessColors[r2][idx];
+        currentChessColors[r2][idx] = tempColors;
       }
     };
 
@@ -322,13 +362,13 @@
         var r1 = fromPos[0], c1 = fromPos[1];
         var r2 = toPos[0], c2 = toPos[1];
 
-        var tempGrid = grid[r1][c1];
-        grid[r1][c1] = grid[r2][c2];
-        grid[r2][c2] = tempGrid;
+        var tempGrid = currentGrid[r1][c1];
+        currentGrid[r1][c1] = currentGrid[r2][c2];
+        currentGrid[r2][c2] = tempGrid;
 
-        var tempColors = chessColors[r1][c1];
-        chessColors[r1][c1] = chessColors[r2][c2];
-        chessColors[r2][c2] = tempColors;
+        var tempColors = currentChessColors[r1][c1];
+        currentChessColors[r1][c1] = currentChessColors[r2][c2];
+        currentChessColors[r2][c2] = tempColors;
       }
     };
 
@@ -353,12 +393,12 @@
     }
 
     document.getElementById('step4Container').innerHTML = '<p style="font-weight:bold;">' + patternMessage + '</p>';
-    renderGrid(grid, chessColors, 'step4Container');
+    renderGrid(currentGrid, currentChessColors, 'step4Container');
     saveToLocalStorage('step4');
   }
 
   function step5And6() {
-    finalGrid = grid.map(function(row) {
+    finalGrid = currentGrid.map(function(row) { // currentGridを元に最終結果を生成
       return Array.from(row).sort(function(a, b) { return a - b; });
     });
 
@@ -388,7 +428,7 @@
     for (let r = 0; r < g.length; r++) {
       html += '<tr>';
       for (let c = 0; c < g[r].length; c++) {
-        const color = colors && colors[r] ? colors[r][c] : '';
+        const color = colors && colors[r] && colors[r][c] ? colors[r][c] : ''; // nullチェックを追加
         html += '<td class="' + color + '">' + (g[r][c] || '') + '</td>';
       }
       html += '</tr>';
@@ -414,7 +454,7 @@
     const maxRows = Math.max(gridA.length, gridB.length);
     const lines = [];
 
-    lines.push("最終結果1,最終結果2,最終結果3,最終結果3,最終結果4,最終結果5,最終結果6,最終結果7,,ユニーク数字1,ユニーク数字2,ユニーク数字3,ユニーク数字4,ユニーク数字5,ユニーク数字6,ユニーク数字7"); // CSVヘッダー修正：最終結果3の重複を修正
+    lines.push("最終結果1,最終結果2,最終結果3,最終結果4,最終結果5,最終結果6,最終結果7,,ユニーク数字1,ユニーク数字2,ユニーク数字3,ユニーク数字4,ユニーク数字5,ユニーク数字6,ユニーク数字7");
 
     for (let i = 0; i < maxRows; i++) {
       const rowA = gridA[i] || [];
@@ -430,7 +470,6 @@
     return lines.join('\n');
   }
 
-  // ★ 修正：iOS対応のためにdownload属性とcreateObjectURLの代わりにデータURIを使用
   function downloadComparisonCSV() {
     if (!initialGrid.length || !finalGrid.length) {
       alert("「① 35個ユニーク数字生成 & チェス盤分類」と「⑤ 各行を昇順に並び替えて最終結果表示 & 比較表示」を実行してから出力してください！");
@@ -442,50 +481,17 @@
     });
     const csvContent = getComparisonCSVContent(finalGrid, sortedInitialGrid);
     const bom = '\uFEFF';
-    const encodedContent = encodeURIComponent(bom + csvContent); // BOM付きCSVをエンコード
+    const encodedContent = encodeURIComponent(bom + csvContent);
     
     const now = new Date();
     const filename = 'comparison_result_' + now.toISOString().replace(/[:T.]/g, '-') + '.csv';
 
-    // データURIスキームを生成してダウンロード
     const dataUri = 'data:text/csv;charset=utf-8,' + encodedContent;
     
-    // iOS Safariでは直接ダウンロードできない場合が多いので、別タブで開くことを試みる
-    // これにより、ユーザーは手動で「共有」メニューから保存できるようになる
     const a = document.createElement('a');
     a.href = dataUri;
-    a.target = '_blank'; // 新しいタブで開く
-    a.download = filename; // download属性はiOSでは無視されることがあるが、念のため
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    // Safariで直接ダウンロードが難しい場合、ユーザーに「共有」メニューを使うよう促すメッセージ
-    setTimeout(function() { // 少し遅延させてからメッセージを表示
-        alert("ファイルをダウンロードするには、開かれた新しいタブで「共有」アイコン（四角から上向きの矢印）をタップし、「ファイルに保存」または「プリント」などのオプションを選択してください。");
-    }, 500); // 0.5秒後にアラートを表示
-  }
-
-  // ★ 修正：iOS対応のためにdownload属性とcreateObjectURLの代わりにデータURIを使用
-  function downloadInitialCSV() {
-    if (!initialGrid.length) {
-      alert("「① 35個ユニーク数字生成 & チェス盤分類」を実行してから保存してください！");
-      return;
-    }
-    const csv = getCSVContent(initialGrid);
-    const bom = '\uFEFF';
-    const encodedContent = encodeURIComponent(bom + csv); // BOM付きCSVをエンコード
-
-    const now = new Date();
-    const filename = 'initial_grid_' + now.toISOString().replace(/[:T.]/g, '-') + '.csv';
-    
-    // データURIスキームを生成してダウンロード
-    const dataUri = 'data:text/csv;charset=utf-8,' + encodedContent;
-
-    const a = document.createElement('a');
-    a.href = dataUri;
-    a.target = '_blank'; // 新しいタブで開く
-    a.download = filename; // download属性はiOSでは無視されることがあるが、念のため
+    a.target = '_blank';
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -495,94 +501,123 @@
     }, 500);
   }
 
-  // triggerCSVDownload関数はdownloadInitialCSVとdownloadComparisonCSVに統合されたため、削除
-  // function triggerCSVDownload(content, filename) { ... }
+  function getCSVContent(targetGrid) {
+    return targetGrid.map(function(row) { return row.join(','); }).join('\n');
+  }
 
+  function downloadInitialCSV() {
+    if (!initialGrid.length) {
+      alert("「① 35個ユニーク数字生成 & チェス盤分類」を実行してから保存してください！");
+      return;
+    }
+    const csv = getCSVContent(initialGrid);
+    const bom = '\uFEFF';
+    const encodedContent = encodeURIComponent(bom + csv);
+
+    const now = new Date();
+    const filename = 'initial_grid_' + now.toISOString().replace(/[:T.]/g, '-') + '.csv';
+    
+    const dataUri = 'data:text/csv;charset=utf-8,' + encodedContent;
+
+    const a = document.createElement('a');
+    a.href = dataUri;
+    a.target = '_blank';
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    setTimeout(function() {
+        alert("ファイルをダウンロードするには、開かれた新しいタブで「共有」アイコン（四角から上向きの矢印）をタップし、「ファイルに保存」または「プリント」などのオプションを選択してください。");
+    }, 500);
+  }
+
+  // localStorageへの保存関数
   function saveToLocalStorage(step) {
     localStorage.setItem('lotto_step', step);
-    localStorage.setItem('lotto_grid', JSON.stringify(grid));
-    localStorage.setItem('lotto_colors', JSON.stringify(chessColors));
-    localStorage.setItem('lotto_initial', JSON.stringify(initialGrid));
-    localStorage.setItem('lotto_final', JSON.stringify(finalGrid));
+    localStorage.setItem('lotto_initial_grid', JSON.stringify(initialGrid));
+    localStorage.setItem('lotto_initial_colors', JSON.stringify(initialChessColors));
+    localStorage.setItem('lotto_current_grid', JSON.stringify(currentGrid));
+    localStorage.setItem('lotto_current_colors', JSON.stringify(currentChessColors));
+    localStorage.setItem('lotto_final_grid', JSON.stringify(finalGrid));
     localStorage.setItem('lotto_excluded_numbers', JSON.stringify(excludedNumbers));
   }
 
+  // localStorageからのロード関数
   function loadFromLocalStorage() {
     try {
-      const storedGrid = JSON.parse(localStorage.getItem('lotto_grid'));
-      const storedColors = JSON.parse(localStorage.getItem('lotto_colors'));
-      const storedInitial = JSON.parse(localStorage.getItem('lotto_initial'));
-      const storedFinal = JSON.parse(localStorage.getItem('lotto_final'));
-      const storedExcludedNumbers = JSON.parse(localStorage.getItem('lotto_excluded_numbers'));
-      const step = localStorage.getItem('lotto_step');
+      const storedStep = localStorage.getItem('lotto_step');
+      initialGrid = JSON.parse(localStorage.getItem('lotto_initial_grid')) || [];
+      initialChessColors = JSON.parse(localStorage.getItem('lotto_initial_colors')) || [];
+      currentGrid = JSON.parse(localStorage.getItem('lotto_current_grid')) || [];
+      currentChessColors = JSON.parse(localStorage.getItem('lotto_current_colors')) || [];
+      finalGrid = JSON.parse(localStorage.getItem('lotto_final_grid')) || [];
+      excludedNumbers = JSON.parse(localStorage.getItem('lotto_excluded_numbers')) || [];
 
-      if (storedGrid && storedColors) {
-        grid = storedGrid;
-        chessColors = storedColors;
-        initialGrid = storedInitial || [];
-        finalGrid = storedFinal || [];
-        excludedNumbers = storedExcludedNumbers || [];
+      // 全てのコンテナをクリア
+      const containers = ['step2Container', 'step3Container', 'step4Container', 'step5And6Container'];
+      for (let i = 0; i < containers.length; i++) {
+          const containerElement = document.getElementById(containers[i]);
+          if (containerElement) {
+              containerElement.innerHTML = '';
+          }
+      }
+      document.getElementById('excludedNumbers').innerHTML = '';
 
-        const containers = ['step2Container', 'step3Container', 'step4Container', 'step5And6Container'];
-        for (let i = 0; i < containers.length; i++) {
-            var containerElement = document.getElementById(containers[i]);
-            if (containerElement) {
-                containerElement.innerHTML = '';
-            }
-        }
-        document.getElementById('excludedNumbers').innerHTML = '';
+      if (initialGrid.length > 0) {
+        document.getElementById('excludedNumbers').innerHTML = '選ばれなかった数字: ' + excludedNumbers.join(', ');
+        renderGrid(initialGrid, initialChessColors, 'step2Container');
+      }
 
-        if (step === 'step1' || step === 'step2' || step === 'step3' || step === 'step4' || step === 'step5') {
-            document.getElementById('excludedNumbers').innerHTML = '選ばれなかった数字: ' + excludedNumbers.join(', ');
-            renderGrid(initialGrid, chessColors, 'step2Container');
+      if (storedStep === 'step3' || storedStep === 'step4' || storedStep === 'step5') {
+          const loadedStep3Grid = JSON.parse(localStorage.getItem('lotto_step3_grid'));
+          const loadedStep3Colors = JSON.parse(localStorage.getItem('lotto_step3_colors'));
+          if (loadedStep3Grid && loadedStep3Colors) {
+              renderGrid(loadedStep3Grid, loadedStep3Colors, 'step3Container');
+          }
+      }
 
-            if (step === 'step3' || step === 'step4' || step === 'step5') {
-                const loadedStep3Grid = JSON.parse(localStorage.getItem('lotto_step3_grid'));
-                const loadedStep3Colors = JSON.parse(localStorage.getItem('lotto_step3_colors'));
-                if (loadedStep3Grid && loadedStep3Colors) {
-                    renderGrid(loadedStep3Grid, loadedStep3Colors, 'step3Container');
-                }
-            }
-
-            if (step === 'step4' || step === 'step5') {
-                renderGrid(grid, chessColors, 'step4Container');
-            }
-            
-            if (step === 'step5') {
-                const container = document.getElementById('step5And6Container');
-                const sortedInitialGrid = initialGrid.map(function(row) {
-                  return Array.from(row).sort(function(a, b) { return a - b; });
-                });
-                const finalTableHTML = renderTitledGrid("最終結果", finalGrid);
-                const initialTableHTML = renderTitledGrid("ユニーク数字組合せ（行を昇順）", sortedInitialGrid);
-                container.insertAdjacentHTML('beforeend', finalTableHTML);
-                container.insertAdjacentHTML('beforeend', initialTableHTML);
-            }
-        }
+      if (storedStep === 'step4' || storedStep === 'step5') {
+          renderGrid(currentGrid, currentChessColors, 'step4Container');
+      }
+      
+      if (storedStep === 'step5') {
+          const container = document.getElementById('step5And6Container');
+          const sortedInitialGrid = initialGrid.map(function(row) {
+            return Array.from(row).sort(function(a, b) { return a - b; });
+          });
+          const finalTableHTML = renderTitledGrid("最終結果", finalGrid);
+          const initialTableHTML = renderTitledGrid("ユニーク数字組合せ（行を昇順）", sortedInitialGrid);
+          container.insertAdjacentHTML('beforeend', finalTableHTML);
+          container.insertAdjacentHTML('beforeend', initialTableHTML);
       }
     } catch (e) {
       console.error("保存データの読み込みに失敗しました", e);
+      // エラーが発生した場合はlocalStorageをクリアして初期状態に戻す
+      resetStorage(); 
     }
   }
 
+  // 全体リセット関数
   function resetStorage() {
     localStorage.clear();
-    grid = [];
-    chessColors = [];
     initialGrid = [];
+    initialChessColors = [];
+    currentGrid = [];
+    currentChessColors = [];
     finalGrid = [];
     excludedNumbers = [];
+
     const containers = ['step2Container', 'step3Container', 'step4Container', 'step5And6Container'];
     for (let i = 0; i < containers.length; i++) {
-        var containerElement = document.getElementById(containers[i]);
+        const containerElement = document.getElementById(containers[i]);
         if (containerElement) {
             containerElement.innerHTML = '';
         }
     }
     document.getElementById('excludedNumbers').innerHTML = '';
-    // step3_pre のデータもリセット時にクリア
-    localStorage.removeItem('lotto_step3_grid_pre');
-    localStorage.removeItem('lotto_step3_colors_pre');
+    // ロード関数を呼び出してUIを完全にリセット
+    loadFromLocalStorage(); 
   }
 
   window.onload = function () {
