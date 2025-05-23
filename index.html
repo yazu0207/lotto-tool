@@ -2,33 +2,33 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>L7 配列ツール</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>L7 配列ツール</title>
   <style>
     body {
       font-family: sans-serif;
-      padding: 10px; /* パディングを少し減らす */
-      max-width: 600px; /* PC表示時の最大幅を設定 */
-      margin: auto; /* PC表示時に中央寄せ */
-      box-sizing: border-box; /* paddingがwidthに含まれるように */
+      padding: 10px;
+      max-width: 600px;
+      margin: auto;
+      box-sizing: border-box;
     }
     table {
       border-collapse: collapse;
       margin: 10px 0;
-      width: 100%; /* テーブルの幅を100%にする */
-      table-layout: fixed; /* カラム幅を固定する（tdのwidthが効くように） */
+      width: 100%;
+      table-layout: fixed;
     }
     td {
-      width: 13vw; /* 画面幅に応じてセルの幅を調整 */
-      height: 13vw; /* 画面幅に応じてセルの高さを調整 */
-      max-width: 50px; /* セルの最大幅を設定（大きくなりすぎないように） */
-      max-height: 50px; /* セルの最大高さを設定 */
+      width: 13vw;
+      height: 13vw;
+      max-width: 50px;
+      max-height: 50px;
       text-align: center;
       border: 1px solid #ccc;
       font-weight: bold;
-      font-size: 3.5vw; /* 画面幅に応じてフォントサイズを調整 */
-      min-font-size: 14px; /* フォントの最小サイズ */ /* 追加: フォントが小さくなりすぎないように */
+      font-size: 3.5vw;
+      min-font-size: 14px;
     }
-    /* PC表示時にtdのサイズを固定するメディアクエリ */
     @media (min-width: 601px) {
       td {
         width: 40px;
@@ -40,57 +40,52 @@
     .white { background-color: #fff; }
     .black { background-color: #999; color: #fff; }
     button {
-      margin: 10px 0; /* 上下マージンを確保 */
+      margin: 10px 0;
       padding: 10px 15px;
       font-size: 16px;
-      display: block; /* ボタンをブロック要素にして縦に並べる */
-      width: 100%; /* ボタンの幅を100%にする */
-      box-sizing: border-box; /* paddingがwidthに含まれるように */
-      white-space: normal; /* ボタン内のテキストが折り返すように */
-      text-align: center; /* テキストを中央揃え */
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      white-space: normal;
+      text-align: center;
     }
-    /* PC表示時 (幅が広い場合) はボタンを横並びにする */
     @media (min-width: 601px) {
         .step-section button {
-            display: inline-block; /* インラインブロックに戻す */
-            width: auto; /* 幅を自動調整に戻す */
-            margin: 10px 5px; /* 元のマージン */
+            display: inline-block;
+            width: auto;
+            margin: 10px 5px;
         }
-        /* 複数のボタンがあるステップのボタンは横並びで、gapを設定 */
         .step-section.button-group {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
-            gap: 10px; /* ボタン間のスペース */
+            gap: 10px;
         }
     }
 
     .step-section {
       margin-bottom: 30px;
-      border-bottom: 1px solid #eee; /* 各ステップの区切り */
+      border-bottom: 1px solid #eee;
       padding-bottom: 20px;
     }
     #excludedNumbers {
         margin-top: 10px;
         font-weight: bold;
         color: #d33;
-        word-break: break-all; /* 長い数字リストがはみ出さないように */
+        word-break: break-all;
     }
-    /* 比較表示のコンテナ */
     #step5And6Container {
       display: flex;
-      flex-direction: column; /* スマホでは縦に並べる */
-      gap: 20px; /* 各テーブル間のスペース */
-      flex-wrap: wrap; /* 折り返し */
+      flex-direction: column;
+      gap: 20px;
+      flex-wrap: wrap;
     }
-    /* PC表示時に横並びに戻すメディアクエリ */
     @media (min-width: 601px) {
       #step5And6Container {
-        flex-direction: row; /* PCでは横に並べる */
+        flex-direction: row;
         gap: 40px;
       }
     }
-    /* パターン仕様一覧の文字がはみ出さないように */
     .step-section > div[style*="margin-top:10px"] {
       word-break: break-all;
     }
@@ -100,22 +95,20 @@
 
 <h2>L7 予想チェス盤配置ツール</h2>
 
-<div class="step-section button-group"> <button onclick="step1()">① 35個ユニーク数字生成</button>
+<div class="step-section button-group">
+  <button onclick="step1And2()">① 35個ユニーク数字生成 & チェス盤分類</button>
   <button onclick="resetStorage()">🔄 リセット</button>
-  <button onclick="downloadInitialCSV()">①結果をCSV保存</button>
-  <div id="step1Container"></div>
-  <div id="excludedNumbers"></div>
+  <button onclick="downloadInitialCSV()">結果をCSV保存</button>
+  <div id="step2Container"></div> <div id="excludedNumbers"></div>
 </div>
 
-<div class="step-section button-group"> <button onclick="step2()">② チェス盤分類</button>
-  <div id="step2Container"></div>
-</div>
-
-<div class="step-section button-group"> <button onclick="step3()">③ 並び替え（白→1-2行目、黒→3-4行目、残り→5行目）</button>
+<div class="step-section button-group">
+  <button onclick="step3()">② 並び替え（白→1-2行目、黒→3-4行目、残り→5行目）</button>
   <div id="step3Container"></div>
 </div>
 
-<div class="step-section button-group"> <button onclick="step4()">④ ランダム交換</button>
+<div class="step-section button-group">
+  <button onclick="step4()">③ ランダム交換</button>
   <div id="step4Container"></div>
   <div style="margin-top:10px; font-size:14px; border-top:1px solid #ccc; padding-top:10px;">
     <strong>パターン仕様一覧：</strong><br>
@@ -126,7 +119,8 @@
   </div>
 </div>
 
-<div class="step-section button-group"> <button onclick="step5And6()">⑤ 各行を昇順に並び替えて最終結果表示 & 比較表示</button>
+<div class="step-section button-group">
+  <button onclick="step5And6()">④ 各行を昇順に並び替えて最終結果表示 & 比較表示</button>
   <button onclick="downloadComparisonCSV()">比較結果をCSV保存</button>
   <div id="step5And6Container"></div>
 </div>
@@ -141,33 +135,32 @@
   const cols = 7;
 
   function generateUniqueNumbers() {
-    let nums = Array.from({ length: 37 }, (_, i) => i + 1);
+    let nums = Array.from({ length: 37 }, function(_, i) { return i + 1; });
     for (let i = nums.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [nums[i], nums[j]] = [nums[j], nums[i]];
+      var temp = nums[i];
+      nums[i] = nums[j];
+      nums[j] = temp;
     }
     const selected = nums.slice(0, 35);
     excludedNumbers = nums.slice(35);
     return selected;
   }
 
-  function step1() {
+  function processStep1() {
     const numbers = generateUniqueNumbers();
     grid = [];
     for (let i = 0; i < rows; i++) {
       const row = numbers.slice(i * cols, (i + 1) * cols);
       grid.push(row);
     }
-
-    chessColors = Array.from({ length: rows }, () => Array(cols).fill(''));
     initialGrid = JSON.parse(JSON.stringify(grid));
-    document.getElementById('step1Container').innerHTML = '';
-    document.getElementById('excludedNumbers').innerHTML = `選ばれなかった数字: ${excludedNumbers.join(', ')}`;
-    renderGrid(grid, null, 'step1Container');
-    saveToLocalStorage('step1');
+    // document.getElementById('step1Container').innerHTML = ''; // 削除
+    document.getElementById('excludedNumbers').innerHTML = '選ばれなかった数字: ' + excludedNumbers.join(', ');
+    // renderGrid(grid, null, 'step1Container'); // 削除
   }
 
-  function step2() {
+  function processStep2() {
     chessColors = [];
     for (let r = 0; r < rows; r++) {
       let row = [];
@@ -178,6 +171,11 @@
     }
     document.getElementById('step2Container').innerHTML = '';
     renderGrid(grid, chessColors, 'step2Container');
+  }
+
+  function step1And2() {
+    processStep1();
+    processStep2();
     saveToLocalStorage('step2');
   }
 
@@ -196,22 +194,26 @@
 
     const whiteValues = [], blackValues = [];
 
-    for (let [r, c] of whiteOrder) {
+    for (let i = 0; i < whiteOrder.length; i++) { // forEachを従来のforループに修正
+      const r = whiteOrder[i][0];
+      const c = whiteOrder[i][1];
       if (chessColors[r][c] === 'white') whiteValues.push(grid[r][c]);
     }
 
-    for (let [r, c] of blackOrder) {
+    for (let i = 0; i < blackOrder.length; i++) { // forEachを従来のforループに修正
+      const r = blackOrder[i][0];
+      const c = blackOrder[i][1];
       if (chessColors[r][c] === 'black') blackValues.push(grid[r][c]);
     }
 
-    const usedWhite = new Set(whiteOrder.map(([r, c]) => `${r},${c}`));
-    const usedBlack = new Set(blackOrder.map(([r, c]) => `${r},${c}`));
+    const usedWhite = new Set(whiteOrder.map(function(pos) { return pos[0] + ',' + pos[1]; })); // テンプレートリテラルを修正
+    const usedBlack = new Set(blackOrder.map(function(pos) { return pos[0] + ',' + pos[1]; })); // テンプレートリテラルを修正
 
     const whiteRemainder = [], blackRemainder = [];
 
     for (let r = 0; r < 5; r++) {
       for (let c = 0; c < 7; c++) {
-        const posKey = `${r},${c}`;
+        const posKey = r + ',' + c; // テンプレートリテラルを修正
         const color = chessColors[r][c];
         if (color === 'white' && !usedWhite.has(posKey)) {
           whiteRemainder.push(grid[r][c]);
@@ -230,7 +232,7 @@
       blackValues.slice(0, 7),
       blackValues.slice(7, 14)
     ];
-    const remainderGroup = [...whiteValues.slice(14), ...whiteRemainder, ...blackValues.slice(14), ...blackRemainder].slice(0, 7);
+    const remainderGroup = [].concat(whiteValues.slice(14), whiteRemainder, blackValues.slice(14), blackRemainder).slice(0, 7);
 
     const newGrid = [
       whiteGroups[0],
@@ -240,10 +242,10 @@
       remainderGroup
     ];
 
-    const newColors = newGrid.map((row, i) => {
-      if (i < 2) return row.map(() => 'white');
-      if (i < 4) return row.map(() => 'black');
-      return row.map(() => '');
+    const newColors = newGrid.map(function(row, i) {
+      if (i < 2) return row.map(function() { return 'white'; });
+      if (i < 4) return row.map(function() { return 'black'; });
+      return row.map(function() { return ''; });
     });
 
     grid = newGrid;
@@ -263,28 +265,35 @@
       grid = JSON.parse(JSON.stringify(savedStep3Grid));
       chessColors = JSON.parse(JSON.stringify(savedStep3Colors));
     }
-    const swapBetween = (r1, r2) => {
+    const swapBetween = function(r1, r2) {
       const count = Math.floor(Math.random() * 4);
-      const indices = [...Array(cols).keys()];
+      const indices = Array.from({ length: cols }, function(_, i) { return i; });
         for (let i = indices.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [indices[i], indices[j]] = [indices[j], indices[i]];
+            var temp = indices[i];
+            indices[i] = indices[j];
+            indices[j] = temp;
         }
       for (let i = 0; i < count; i++) {
         const idx = indices[i];
-        [grid[r1][idx], grid[r2][idx]] = [grid[r2][idx], grid[r1][idx]];
-        [chessColors[r1][idx], chessColors[r2][idx]] = [chessColors[r2][idx], chessColors[r1][idx]];
+        var tempGrid = grid[r1][idx];
+        grid[r1][idx] = grid[r2][idx];
+        grid[r2][idx] = tempGrid;
+
+        var tempColors = chessColors[r1][idx];
+        chessColors[r1][idx] = chessColors[r2][idx];
+        chessColors[r2][idx] = tempColors;
       }
     };
 
-    const swapAcross = (fromRows, toRow) => {
+    const swapAcross = function(fromRows, toRow) {
       const fromPositions = [];
-      const toPositions = [];
-      fromRows.forEach(r => {
+      fromRows.forEach(function(r) {
         for (let c = 0; c < cols; c++) {
           fromPositions.push([r, c]);
         }
       });
+      const toPositions = [];
       for (let c = 0; c < cols; c++) {
         toPositions.push([toRow, c]);
       }
@@ -293,10 +302,18 @@
       for (let i = 0; i < swapCount; i++) {
         const fromIdx = Math.floor(Math.random() * fromPositions.length);
         const toIdx = Math.floor(Math.random() * toPositions.length);
-        const [r1, c1] = fromPositions.splice(fromIdx, 1)[0];
-        const [r2, c2] = toPositions.splice(toIdx, 1)[0];
-        [grid[r1][c1], grid[r2][c2]] = [grid[r2][c2], grid[r1][c1]];
-        [chessColors[r1][c1], chessColors[r2][c2]] = [chessColors[r2][c2], chessColors[r1][c1]];
+        const fromPos = fromPositions.splice(fromIdx, 1)[0];
+        const toPos = toPositions.splice(toIdx, 1)[0];
+        var r1 = fromPos[0], c1 = fromPos[1]; // 分割代入を修正
+        var r2 = toPos[0], c2 = toPos[1]; // 分割代入を修正
+
+        var tempGrid = grid[r1][c1];
+        grid[r1][c1] = grid[r2][c2];
+        grid[r2][c2] = tempGrid;
+
+        var tempColors = chessColors[r1][c1];
+        chessColors[r1][c1] = chessColors[r2][c2];
+        chessColors[r2][c2] = tempColors;
       }
     };
 
@@ -320,26 +337,26 @@
       patternMessage = 'パターン④を適用：1〜4行目と5行目でランダム交換';
     }
 
-    document.getElementById('step4Container').innerHTML = `<p style="font-weight:bold;">${patternMessage}</p>`;
+    document.getElementById('step4Container').innerHTML = '<p style="font-weight:bold;">' + patternMessage + '</p>';
     renderGrid(grid, chessColors, 'step4Container');
     saveToLocalStorage('step4');
   }
 
   function step5And6() {
-    finalGrid = grid.map(function(row) { // map のコールバック関数を function で定義
-      return Array.from(row).sort(function(a, b) { return a - b; }); // sort のコールバック関数も function で定義
+    finalGrid = grid.map(function(row) {
+      return Array.from(row).sort(function(a, b) { return a - b; });
     });
 
     if (!finalGrid.length || !initialGrid.length) {
-      alert("①と④ステップを実行してから、このボタンをクリックしてください！");
+      alert("「① 35個ユニーク数字生成 & チェス盤分類」と「③ ランダム交換」を実行してから、このボタンをクリックしてください！");
       return;
     }
 
     const container = document.getElementById('step5And6Container');
     container.innerHTML = '';
 
-    const sortedInitialGrid = initialGrid.map(function(row) { // map のコールバック関数を function で定義
-      return Array.from(row).sort(function(a, b) { return a - b; }); // sort のコールバック関数も function で定義
+    const sortedInitialGrid = initialGrid.map(function(row) {
+      return Array.from(row).sort(function(a, b) { return a - b; });
     });
 
     const finalTableHTML = renderTitledGrid("最終結果", finalGrid);
@@ -356,8 +373,8 @@
     for (let r = 0; r < g.length; r++) {
       html += '<tr>';
       for (let c = 0; c < g[r].length; c++) {
-        const color = colors && colors[r] ? colors[r][c] : ''; // nullish coalescing operator の代わりに三項演算子を使用
-        html += `<td class="${color}">${g[r][c] || ''}</td>`;
+        const color = colors && colors[r] ? colors[r][c] : '';
+        html += '<td class="' + color + '">' + (g[r][c] || '') + '</td>';
       }
       html += '</tr>';
     }
@@ -366,11 +383,11 @@
   }
 
   function renderTitledGrid(title, gridData) {
-    let html = '<div><div style="font-weight:bold; font-size:18px; margin-bottom:5px;">' + title + '</div><table>'; // 文字列結合を+に
+    let html = '<div><div style="font-weight:bold; font-size:18px; margin-bottom:5px;">' + title + '</div><table>';
     for (let r = 0; r < gridData.length; r++) {
       html += '<tr>';
       for (let c = 0; c < gridData[r].length; c++) {
-        html += '<td>' + (gridData[r][c] || '') + '</td>'; // 文字列結合を+に
+        html += '<td>' + (gridData[r][c] || '') + '</td>';
       }
       html += '</tr>';
     }
@@ -387,13 +404,12 @@
     for (let i = 0; i < maxRows; i++) {
       const rowA = gridA[i] || [];
       const rowB = gridB[i] || [];
-      // Array.from で新しい配列を作成してから slice を使う
       const paddedA = Array.from(rowA).slice(0, 7);
-      while(paddedA.length < 7) paddedA.push(''); // 足りない分は空文字で埋める
+      while(paddedA.length < 7) paddedA.push('');
       const paddedB = Array.from(rowB).slice(0, 7);
-      while(paddedB.length < 7) paddedB.push(''); // 足りない分は空文字で埋める
+      while(paddedB.length < 7) paddedB.push('');
 
-      lines.push(paddedA.join(',') + ',,' + paddedB.join(',')); // 文字列結合を+に
+      lines.push(paddedA.join(',') + ',,' + paddedB.join(','));
     }
 
     return lines.join('\n');
@@ -401,7 +417,7 @@
 
   function downloadComparisonCSV() {
     if (!initialGrid.length || !finalGrid.length) {
-      alert("①と⑤（最終結果表示 & 比較表示）ステップを実行してから出力してください！");
+      alert("「① 35個ユニーク数字生成 & チェス盤分類」と「④ 各行を昇順に並び替えて最終結果表示 & 比較表示」を実行してから出力してください！");
       return;
     }
 
@@ -413,28 +429,28 @@
     const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
 
     const now = new Date();
-    const filename = 'comparison_result_' + now.toISOString().replace(/[:T.]/g, '-') + '.csv'; // ISOstringで.も置き換え
+    const filename = 'comparison_result_' + now.toISOString().replace(/[:T.]/g, '-') + '.csv';
 
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = filename;
-    document.body.appendChild(a); // bodyに追加しないとiOSで動かない場合がある
+    document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a); // ダウンロード後に要素を削除
+    document.body.removeChild(a);
   }
 
   function getCSVContent(targetGrid) {
-    return targetGrid.map(function(row) { return row.join(','); }).join('\n'); // map のコールバック関数を function で定義
+    return targetGrid.map(function(row) { return row.join(','); }).join('\n');
   }
 
   function downloadInitialCSV() {
     if (!initialGrid.length) {
-      alert("①ステップを実行してから保存してください！");
+      alert("「① 35個ユニーク数字生成 & チェス盤分類」を実行してから保存してください！");
       return;
     }
     const csv = getCSVContent(initialGrid);
     const now = new Date();
-    const filename = 'initial_grid_' + now.toISOString().replace(/[:T.]/g, '-') + '.csv'; // ISOstringで.も置き換え
+    const filename = 'initial_grid_' + now.toISOString().replace(/[:T.]/g, '-') + '.csv';
     triggerCSVDownload(csv, filename);
   }
 
@@ -443,9 +459,9 @@
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = filename;
-    document.body.appendChild(a); // bodyに追加しないとiOSで動かない場合がある
+    document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a); // ダウンロード後に要素を削除
+    document.body.removeChild(a);
   }
 
   function saveToLocalStorage(step) {
@@ -473,51 +489,41 @@
         finalGrid = storedFinal || [];
         excludedNumbers = storedExcludedNumbers || [];
 
-        // コンテナのクリア処理を改善
         const containers = ['step1Container', 'step2Container', 'step3Container', 'step4Container', 'step5And6Container'];
         for (let i = 0; i < containers.length; i++) {
-            document.getElementById(containers[i]).innerHTML = '';
+            var containerElement = document.getElementById(containers[i]); // エラー回避のため変数に格納
+            if (containerElement) { // 要素が存在するかチェック
+                containerElement.innerHTML = '';
+            }
         }
         document.getElementById('excludedNumbers').innerHTML = '';
 
-        // 各ステップの表示を再現
-        if (step === 'step1') {
-            renderGrid(grid, null, 'step1Container');
+        if (step === 'step1' || step === 'step2' || step === 'step3' || step === 'step4' || step === 'step5') {
+            // ステップ1の表示は行わず、チェス盤分類のみ表示
+            // renderGrid(initialGrid, null, 'step1Container'); // 削除
             document.getElementById('excludedNumbers').innerHTML = '選ばれなかった数字: ' + excludedNumbers.join(', ');
-        }
-        if (step === 'step2') {
-            renderGrid(initialGrid, null, 'step1Container');
-            document.getElementById('excludedNumbers').innerHTML = '選ばれなかった数字: ' + excludedNumbers.join(', ');
-            renderGrid(grid, chessColors, 'step2Container');
-        }
-        if (step === 'step3') {
-            renderGrid(initialGrid, null, 'step1Container');
-            document.getElementById('excludedNumbers').innerHTML = '選ばれなかった数字: ' + excludedNumbers.join(', ');
-            renderGrid(grid, chessColors, 'step2Container');
-            renderGrid(grid, chessColors, 'step3Container');
-        }
-        if (step === 'step4') {
-            renderGrid(initialGrid, null, 'step1Container');
-            document.getElementById('excludedNumbers').innerHTML = '選ばれなかった数字: ' + excludedNumbers.join(', ');
-            renderGrid(grid, chessColors, 'step2Container');
-            renderGrid(grid, chessColors, 'step3Container');
-            renderGrid(grid, chessColors, 'step4Container');
-        }
-        if (step === 'step5') {
-            renderGrid(initialGrid, null, 'step1Container');
-            document.getElementById('excludedNumbers').innerHTML = '選ばれなかった数字: ' + excludedNumbers.join(', ');
-            renderGrid(grid, chessColors, 'step2Container');
-            renderGrid(grid, chessColors, 'step3Container');
-            renderGrid(grid, chessColors, 'step4Container');
+            renderGrid(initialGrid, chessColors, 'step2Container'); // step2の内容を表示
 
-            const container = document.getElementById('step5And6Container');
-            const sortedInitialGrid = initialGrid.map(function(row) {
-              return Array.from(row).sort(function(a, b) { return a - b; });
-            });
-            const finalTableHTML = renderTitledGrid("最終結果", finalGrid);
-            const initialTableHTML = renderTitledGrid("ユニーク数字組合せ（行を昇順）", sortedInitialGrid);
-            container.insertAdjacentHTML('beforeend', finalTableHTML);
-            container.insertAdjacentHTML('beforeend', initialTableHTML);
+            if (step === 'step3') {
+                renderGrid(grid, chessColors, 'step3Container');
+            }
+            if (step === 'step4') {
+                renderGrid(grid, chessColors, 'step3Container');
+                renderGrid(grid, chessColors, 'step4Container');
+            }
+            if (step === 'step5') {
+                renderGrid(grid, chessColors, 'step3Container');
+                renderGrid(grid, chessColors, 'step4Container');
+
+                const container = document.getElementById('step5And6Container');
+                const sortedInitialGrid = initialGrid.map(function(row) {
+                  return Array.from(row).sort(function(a, b) { return a - b; });
+                });
+                const finalTableHTML = renderTitledGrid("最終結果", finalGrid);
+                const initialTableHTML = renderTitledGrid("ユニーク数字組合せ（行を昇順）", sortedInitialGrid);
+                container.insertAdjacentHTML('beforeend', finalTableHTML);
+                container.insertAdjacentHTML('beforeend', initialTableHTML);
+            }
         }
       }
     } catch (e) {
@@ -534,7 +540,10 @@
     excludedNumbers = [];
     const containers = ['step1Container', 'step2Container', 'step3Container', 'step4Container', 'step5And6Container'];
     for (let i = 0; i < containers.length; i++) {
-        document.getElementById(containers[i]).innerHTML = '';
+        var containerElement = document.getElementById(containers[i]); // エラー回避のため変数に格納
+        if (containerElement) { // 要素が存在するかチェック
+            containerElement.innerHTML = '';
+        }
     }
     document.getElementById('excludedNumbers').innerHTML = '';
   }
