@@ -98,17 +98,18 @@
 <div class="step-section button-group">
   <button onclick="step1And2()">① 35個ユニーク数字生成 & チェス盤分類</button>
   <button onclick="resetStorage()">🔄 リセット</button>
-  <button onclick="downloadInitialCSV()">結果をCSV保存</button>
-  <div id="step2Container"></div> <div id="excludedNumbers"></div>
+  <button onclick="downloadInitialCSV()">②結果をCSV保存</button>
+  <div id="step2Container"></div>
+  <div id="excludedNumbers"></div>
 </div>
 
 <div class="step-section button-group">
-  <button onclick="step3()">② 並び替え（白→1-2行目、黒→3-4行目、残り→5行目）</button>
+  <button onclick="step3()">③ 並び替え（白→1-2行目、黒→3-4行目、残り→5行目）</button>
   <div id="step3Container"></div>
 </div>
 
 <div class="step-section button-group">
-  <button onclick="step4()">③ ランダム交換</button>
+  <button onclick="step4()">④ ランダム交換</button>
   <div id="step4Container"></div>
   <div style="margin-top:10px; font-size:14px; border-top:1px solid #ccc; padding-top:10px;">
     <strong>パターン仕様一覧：</strong><br>
@@ -120,7 +121,7 @@
 </div>
 
 <div class="step-section button-group">
-  <button onclick="step5And6()">④ 各行を昇順に並び替えて最終結果表示 & 比較表示</button>
+  <button onclick="step5And6()">⑤ 各行を昇順に並び替えて最終結果表示 & 比較表示</button>
   <button onclick="downloadComparisonCSV()">比較結果をCSV保存</button>
   <div id="step5And6Container"></div>
 </div>
@@ -155,9 +156,7 @@
       grid.push(row);
     }
     initialGrid = JSON.parse(JSON.stringify(grid));
-    // document.getElementById('step1Container').innerHTML = ''; // 削除
     document.getElementById('excludedNumbers').innerHTML = '選ばれなかった数字: ' + excludedNumbers.join(', ');
-    // renderGrid(grid, null, 'step1Container'); // 削除
   }
 
   function processStep2() {
@@ -180,6 +179,9 @@
   }
 
   function step3() {
+    localStorage.setItem('lotto_step3_grid_pre', JSON.stringify(grid));
+    localStorage.setItem('lotto_step3_colors_pre', JSON.stringify(chessColors));
+
     const whiteOrder = [
       [0, 0], [0, 2], [1, 1], [2, 0], [3, 1], [2, 2], [1, 3],
       [4, 6], [4, 4], [3, 5], [2, 6], [3, 3], [2, 4], [1, 5],
@@ -192,47 +194,47 @@
       [4, 1], [2, 3], [1, 4],
     ];
 
-    const whiteValues = [], blackValues = [];
+    const newWhiteValues = [];
+    const newBlackValues = [];
+    const newRemainderValues = [];
 
-    for (let i = 0; i < whiteOrder.length; i++) { // forEachを従来のforループに修正
-      const r = whiteOrder[i][0];
-      const c = whiteOrder[i][1];
-      if (chessColors[r][c] === 'white') whiteValues.push(grid[r][c]);
-    }
+    const orderedPositions = new Set();
 
-    for (let i = 0; i < blackOrder.length; i++) { // forEachを従来のforループに修正
-      const r = blackOrder[i][0];
-      const c = blackOrder[i][1];
-      if (chessColors[r][c] === 'black') blackValues.push(grid[r][c]);
-    }
-
-    const usedWhite = new Set(whiteOrder.map(function(pos) { return pos[0] + ',' + pos[1]; })); // テンプレートリテラルを修正
-    const usedBlack = new Set(blackOrder.map(function(pos) { return pos[0] + ',' + pos[1]; })); // テンプレートリテラルを修正
-
-    const whiteRemainder = [], blackRemainder = [];
-
-    for (let r = 0; r < 5; r++) {
-      for (let c = 0; c < 7; c++) {
-        const posKey = r + ',' + c; // テンプレートリテラルを修正
-        const color = chessColors[r][c];
-        if (color === 'white' && !usedWhite.has(posKey)) {
-          whiteRemainder.push(grid[r][c]);
+    for (let i = 0; i < whiteOrder.length; i++) {
+        const r = whiteOrder[i][0];
+        const c = whiteOrder[i][1];
+        if (chessColors[r][c] === 'white') {
+            newWhiteValues.push(grid[r][c]);
+            orderedPositions.add(r + ',' + c);
         }
-        if (color === 'black' && !usedBlack.has(posKey)) {
-          blackRemainder.push(grid[r][c]);
+    }
+
+    for (let i = 0; i < blackOrder.length; i++) {
+        const r = blackOrder[i][0];
+        const c = blackOrder[i][1];
+        if (chessColors[r][c] === 'black') {
+            newBlackValues.push(grid[r][c]);
+            orderedPositions.add(r + ',' + c);
+        }
+    }
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (!orderedPositions.has(r + ',' + c)) {
+          newRemainderValues.push(grid[r][c]);
         }
       }
     }
 
     const whiteGroups = [
-      whiteValues.slice(0, 7),
-      whiteValues.slice(7, 14)
+      newWhiteValues.slice(0, 7),
+      newWhiteValues.slice(7, 14)
     ];
     const blackGroups = [
-      blackValues.slice(0, 7),
-      blackValues.slice(7, 14)
+      newBlackValues.slice(0, 7),
+      newBlackValues.slice(7, 14)
     ];
-    const remainderGroup = [].concat(whiteValues.slice(14), whiteRemainder, blackValues.slice(14), blackRemainder).slice(0, 7);
+    const remainderGroup = [].concat(newWhiteValues.slice(14), newBlackValues.slice(14), newRemainderValues).slice(0, 7);
 
     const newGrid = [
       whiteGroups[0],
@@ -242,11 +244,20 @@
       remainderGroup
     ];
 
-    const newColors = newGrid.map(function(row, i) {
-      if (i < 2) return row.map(function() { return 'white'; });
-      if (i < 4) return row.map(function() { return 'black'; });
-      return row.map(function() { return ''; });
-    });
+    const newColors = [];
+    for(let r = 0; r < rows; r++) {
+        const rowColors = [];
+        for(let c = 0; c < cols; c++) {
+            if (r < 2) {
+                rowColors.push('white');
+            } else if (r < 4) {
+                rowColors.push('black');
+            } else {
+                rowColors.push('');
+            }
+        }
+        newColors.push(rowColors);
+    }
 
     grid = newGrid;
     chessColors = newColors;
@@ -258,13 +269,17 @@
   }
 
   function step4() {
-    const savedStep3Grid = JSON.parse(localStorage.getItem('lotto_step3_grid'));
-    const savedStep3Colors = JSON.parse(localStorage.getItem('lotto_step3_colors'));
+    const savedStep3Grid = JSON.parse(localStorage.getItem('lotto_step3_grid_pre'));
+    const savedStep3Colors = JSON.parse(localStorage.getItem('lotto_step3_colors_pre'));
 
     if (savedStep3Grid && savedStep3Colors) {
       grid = JSON.parse(JSON.stringify(savedStep3Grid));
       chessColors = JSON.parse(JSON.stringify(savedStep3Colors));
+    } else {
+        alert("「③ 並び替え」ステップを先に実行してください。");
+        return;
     }
+
     const swapBetween = function(r1, r2) {
       const count = Math.floor(Math.random() * 4);
       const indices = Array.from({ length: cols }, function(_, i) { return i; });
@@ -304,8 +319,8 @@
         const toIdx = Math.floor(Math.random() * toPositions.length);
         const fromPos = fromPositions.splice(fromIdx, 1)[0];
         const toPos = toPositions.splice(toIdx, 1)[0];
-        var r1 = fromPos[0], c1 = fromPos[1]; // 分割代入を修正
-        var r2 = toPos[0], c2 = toPos[1]; // 分割代入を修正
+        var r1 = fromPos[0], c1 = fromPos[1];
+        var r2 = toPos[0], c2 = toPos[1];
 
         var tempGrid = grid[r1][c1];
         grid[r1][c1] = grid[r2][c2];
@@ -348,7 +363,7 @@
     });
 
     if (!finalGrid.length || !initialGrid.length) {
-      alert("「① 35個ユニーク数字生成 & チェス盤分類」と「③ ランダム交換」を実行してから、このボタンをクリックしてください！");
+      alert("「① 35個ユニーク数字生成 & チェス盤分類」と「④ ランダム交換」を実行してから、このボタンをクリックしてください！");
       return;
     }
 
@@ -399,7 +414,7 @@
     const maxRows = Math.max(gridA.length, gridB.length);
     const lines = [];
 
-    lines.push("最終結果1,最終結果2,最終結果3,最終結果4,最終結果5,最終結果6,最終結果7,,ユニーク数字1,ユニーク数字2,ユニーク数字3,ユニーク数字4,ユニーク数字5,ユニーク数字6,ユニーク数字7");
+    lines.push("最終結果1,最終結果2,最終結果3,最終結果3,最終結果4,最終結果5,最終結果6,最終結果7,,ユニーク数字1,ユニーク数字2,ユニーク数字3,ユニーク数字4,ユニーク数字5,ユニーク数字6,ユニーク数字7"); // CSVヘッダー修正：最終結果3の重複を修正
 
     for (let i = 0; i < maxRows; i++) {
       const rowA = gridA[i] || [];
@@ -415,9 +430,10 @@
     return lines.join('\n');
   }
 
+  // ★ 修正：iOS対応のためにdownload属性とcreateObjectURLの代わりにデータURIを使用
   function downloadComparisonCSV() {
     if (!initialGrid.length || !finalGrid.length) {
-      alert("「① 35個ユニーク数字生成 & チェス盤分類」と「④ 各行を昇順に並び替えて最終結果表示 & 比較表示」を実行してから出力してください！");
+      alert("「① 35個ユニーク数字生成 & チェス盤分類」と「⑤ 各行を昇順に並び替えて最終結果表示 & 比較表示」を実行してから出力してください！");
       return;
     }
 
@@ -426,43 +442,61 @@
     });
     const csvContent = getComparisonCSVContent(finalGrid, sortedInitialGrid);
     const bom = '\uFEFF';
-    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
-
+    const encodedContent = encodeURIComponent(bom + csvContent); // BOM付きCSVをエンコード
+    
     const now = new Date();
     const filename = 'comparison_result_' + now.toISOString().replace(/[:T.]/g, '-') + '.csv';
 
+    // データURIスキームを生成してダウンロード
+    const dataUri = 'data:text/csv;charset=utf-8,' + encodedContent;
+    
+    // iOS Safariでは直接ダウンロードできない場合が多いので、別タブで開くことを試みる
+    // これにより、ユーザーは手動で「共有」メニューから保存できるようになる
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
+    a.href = dataUri;
+    a.target = '_blank'; // 新しいタブで開く
+    a.download = filename; // download属性はiOSでは無視されることがあるが、念のため
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+
+    // Safariで直接ダウンロードが難しい場合、ユーザーに「共有」メニューを使うよう促すメッセージ
+    setTimeout(function() { // 少し遅延させてからメッセージを表示
+        alert("ファイルをダウンロードするには、開かれた新しいタブで「共有」アイコン（四角から上向きの矢印）をタップし、「ファイルに保存」または「プリント」などのオプションを選択してください。");
+    }, 500); // 0.5秒後にアラートを表示
   }
 
-  function getCSVContent(targetGrid) {
-    return targetGrid.map(function(row) { return row.join(','); }).join('\n');
-  }
-
+  // ★ 修正：iOS対応のためにdownload属性とcreateObjectURLの代わりにデータURIを使用
   function downloadInitialCSV() {
     if (!initialGrid.length) {
       alert("「① 35個ユニーク数字生成 & チェス盤分類」を実行してから保存してください！");
       return;
     }
     const csv = getCSVContent(initialGrid);
+    const bom = '\uFEFF';
+    const encodedContent = encodeURIComponent(bom + csv); // BOM付きCSVをエンコード
+
     const now = new Date();
     const filename = 'initial_grid_' + now.toISOString().replace(/[:T.]/g, '-') + '.csv';
-    triggerCSVDownload(csv, filename);
-  }
+    
+    // データURIスキームを生成してダウンロード
+    const dataUri = 'data:text/csv;charset=utf-8,' + encodedContent;
 
-  function triggerCSVDownload(content, filename) {
-    const blob = new Blob([content], { type: 'text/csv' });
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
+    a.href = dataUri;
+    a.target = '_blank'; // 新しいタブで開く
+    a.download = filename; // download属性はiOSでは無視されることがあるが、念のため
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+
+    setTimeout(function() {
+        alert("ファイルをダウンロードするには、開かれた新しいタブで「共有」アイコン（四角から上向きの矢印）をタップし、「ファイルに保存」または「プリント」などのオプションを選択してください。");
+    }, 500);
   }
+
+  // triggerCSVDownload関数はdownloadInitialCSVとdownloadComparisonCSVに統合されたため、削除
+  // function triggerCSVDownload(content, filename) { ... }
 
   function saveToLocalStorage(step) {
     localStorage.setItem('lotto_step', step);
@@ -489,32 +523,32 @@
         finalGrid = storedFinal || [];
         excludedNumbers = storedExcludedNumbers || [];
 
-        const containers = ['step1Container', 'step2Container', 'step3Container', 'step4Container', 'step5And6Container'];
+        const containers = ['step2Container', 'step3Container', 'step4Container', 'step5And6Container'];
         for (let i = 0; i < containers.length; i++) {
-            var containerElement = document.getElementById(containers[i]); // エラー回避のため変数に格納
-            if (containerElement) { // 要素が存在するかチェック
+            var containerElement = document.getElementById(containers[i]);
+            if (containerElement) {
                 containerElement.innerHTML = '';
             }
         }
         document.getElementById('excludedNumbers').innerHTML = '';
 
         if (step === 'step1' || step === 'step2' || step === 'step3' || step === 'step4' || step === 'step5') {
-            // ステップ1の表示は行わず、チェス盤分類のみ表示
-            // renderGrid(initialGrid, null, 'step1Container'); // 削除
             document.getElementById('excludedNumbers').innerHTML = '選ばれなかった数字: ' + excludedNumbers.join(', ');
-            renderGrid(initialGrid, chessColors, 'step2Container'); // step2の内容を表示
+            renderGrid(initialGrid, chessColors, 'step2Container');
 
-            if (step === 'step3') {
-                renderGrid(grid, chessColors, 'step3Container');
+            if (step === 'step3' || step === 'step4' || step === 'step5') {
+                const loadedStep3Grid = JSON.parse(localStorage.getItem('lotto_step3_grid'));
+                const loadedStep3Colors = JSON.parse(localStorage.getItem('lotto_step3_colors'));
+                if (loadedStep3Grid && loadedStep3Colors) {
+                    renderGrid(loadedStep3Grid, loadedStep3Colors, 'step3Container');
+                }
             }
-            if (step === 'step4') {
-                renderGrid(grid, chessColors, 'step3Container');
+
+            if (step === 'step4' || step === 'step5') {
                 renderGrid(grid, chessColors, 'step4Container');
             }
+            
             if (step === 'step5') {
-                renderGrid(grid, chessColors, 'step3Container');
-                renderGrid(grid, chessColors, 'step4Container');
-
                 const container = document.getElementById('step5And6Container');
                 const sortedInitialGrid = initialGrid.map(function(row) {
                   return Array.from(row).sort(function(a, b) { return a - b; });
@@ -538,14 +572,17 @@
     initialGrid = [];
     finalGrid = [];
     excludedNumbers = [];
-    const containers = ['step1Container', 'step2Container', 'step3Container', 'step4Container', 'step5And6Container'];
+    const containers = ['step2Container', 'step3Container', 'step4Container', 'step5And6Container'];
     for (let i = 0; i < containers.length; i++) {
-        var containerElement = document.getElementById(containers[i]); // エラー回避のため変数に格納
-        if (containerElement) { // 要素が存在するかチェック
+        var containerElement = document.getElementById(containers[i]);
+        if (containerElement) {
             containerElement.innerHTML = '';
         }
     }
     document.getElementById('excludedNumbers').innerHTML = '';
+    // step3_pre のデータもリセット時にクリア
+    localStorage.removeItem('lotto_step3_grid_pre');
+    localStorage.removeItem('lotto_step3_colors_pre');
   }
 
   window.onload = function () {
